@@ -1,0 +1,50 @@
+# Define input and output files
+BAM_DIR = "path/to/bam"
+REFERENCE_GENOME = "path/to/reference/genome.fa"
+OUTPUT_DIR = "output/sample_id"
+
+# Define sample names and files
+SAMPLES = {
+    "sample1": ["sample1_normal_rmdup.bam", sample1_tumor_rmdup.bam","]  #normal VS Tumor
+}
+
+# Define variant calling rules
+rule strelka_config:  ##add parameters
+    input:
+        normal_bam = f"{BAM_DIR}/{sample[0]}",
+        tumor_bam = f"{BAM_DIR}/{sample[1]}"
+        reference = REFERENCE_GENOME
+    conda:
+        "envs/strelka.yaml"
+    shell:
+        "configureStrelkaSomaticWorkflow.py --normalBam $normal_bam --tumorBam $tumor_bam"
+        "--referenceFasta $reference"
+        "--runDir {OUTPUT_DIR}"
+
+# Rule to run the Strelka workflow
+rule strelka:
+    input:
+        configureStrelkaWorkflow.py = f"{OUTPUT_DIR}/configureStrelkaWorkflow.py"
+    output:
+        snv = f"{OUTPUT_DIR}/{sample}.somatic.snvs.vcf.gz",
+        indel = f"{OUTPUT_DIR}/{sample}.somatic.indels.vcf.gz"
+    threads:
+        8
+    shell:
+        "python {input.configureStrelkaWorkflow.py} --jobs 8 --localmem 64"
+ 
+ # Define the rule to run all analysis steps
+rule all:
+    input:
+        f"{OUTPUT_DIR}/{sample}.somatic.snvs.vcf.gz"
+        f"{OUTPUT_DIR}/{sample}.somatic.indels.vcf.gz"
+    output:
+        touch(".snakemake_success")
+    onsuccess:
+        print("Pipeline completed successfully!")
+    onerror:
+        print("Pipeline failed :(")
+    conda:
+        "envs/bwa.yaml"
+    shell:
+        "if [ ! -f {output} ]; then touch {output}; fi"
