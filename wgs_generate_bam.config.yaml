@@ -7,8 +7,8 @@ annotation_file: /path/to/annotation.gtf
 # FastQC options
 fastqc_opts: "--noextract -t 4"
 
-# Trimmomatic options
-trim_opts: "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36"
+# fastp options
+fastp_opts: "--adapter_sequence NNNNNNNNNNNNNNNNNNNN --adapter_sequence GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG -c -q 20 -u 50 -n 15 -5 20 -3 20 -w 1 -l 75"
 
 # BWA options
 bwa_opts: "-t 4"
