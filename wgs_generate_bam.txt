@@ -1,0 +1,85 @@
+# Define input and output files
+FASTQ_DIR = "path/to/fastq/file"
+REFERENCE_GENOME = "path/to/reference/genome.fa"
+FASTP_DIR = "path/to/fastp/file"
+MAP_DIR = "path/to/map/file"
+OUTPUT_DIR = "path/to/vcf/file"
+
+# Define sample names and files
+SAMPLES = {
+    "sample1": ["sample1_R1.fastq.gz", "sample1_R2.fastq.gz"], #normal
+    "sample2": ["sample2_R1.fastq.gz", "sample1_R2.fastq.gz"]  #tumor
+}
+
+# Define quality control rules
+rule fastqc:
+    input:
+        fastq = f"{FASTQ_DIR}/{sample[0]}",
+        fastq2 = f"{FASTQ_DIR}/{sample[1]}"
+    output:
+        html = f"{FASTQ_DIR}/{sample}_fastqc.html"
+    conda:
+        "envs/fastqc.yaml"
+    shell:
+        "fastqc {input.fastq} {input.fastq2} -o {output.html}"
+
+# Define filtering rules
+rule fastp:
+    input:
+        fastq = f"{FASTQ_DIR}/{sample[0]}",
+        fastq2 = f"{FASTQ_DIR}/{sample[1]}"
+    output:
+        fastq_trim = f"{FASTP_DIR}/{sample}_R1.fastq.gz",
+        fastq2_trim = f"{FASTP_DIR}/{sample}_R2.fastq.gz",
+    conda:
+        "envs/fastp.yaml"
+    shell:
+        "fastp -i {input.fastq} -I {input.fastq2}"
+        "-o {output.fastq_trim} -O {output.fastq2_trim}"
+        "-h {sample}.html -j {sample}.json"    
+
+# Define mapping rules
+rule bwa_mem:
+    input:
+        fastq_trim = f"{FASTP_DIR}/{sample}_R1.fastq.gz",
+        fastq2_trim = f"{FASTP_DIR}/{sample}_R2.fastq.gz",
+        reference = REFERENCE_GENOME
+    output:
+        raw.bam = f"{MAP_DIR}/{sample}.raw.bam"
+        sort.bam = f"{MAP_DIR}/{sample}.sort.bam"
+        rmdup.bam = f"{MAP_DIR}/{sample}.rmdup.bam"
+    conda:
+        "envs/bwa.yaml"
+    shell:
+        "bwa mem -M -t 4 -k 32 {reference} {fastq_trim} {fastq2_trim} | "
+        "samtools view -bS  -f 0x2 - -o {output.raw.bam}"
+        "samtools sort {output.raw.bam}  {output.sort.bam}"
+        "samtools index {output.sort.bam}"
+        "samtools rmdup -s {output.sort.bam} {output.rmdup.bam}"
+        "samtools index {output.rmdup.bam}"
+  
+# Define the rule to run all analysis steps
+rule all:
+    input:
+        f"{MAP_DIR}/{sample}.rmdup.bam"
+    output:
+        touch(".snakemake_success")
+    onsuccess:
+        print("Pipeline completed successfully!")
+    onerror:
+        print("Pipeline failed :(")
+    conda:
+        "envs/bwa.yaml"
+    shell:
+        "if [ ! -f {output} ]; then touch {output}; fi"
+
+# Define rule to clean up partial output files in case of process termination        
+rule cleanup:
+    output:
+        "FASTQ_DIR/started.flag",
+        "FASTP_DIR/started.flag",
+        "MAP_DIR/started.flag",
+    shell:
+        "touch {output} && \
+        trap 'rm -f qc/*.html && rm -f
+        
