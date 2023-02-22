@@ -1,0 +1,46 @@
+# Reference genome
+ref_genome: /path/to/reference/genome.fa
+
+# Annotation file
+annotation_file: /path/to/annotation.gtf
+
+# FastQC options
+fastqc_opts: "--noextract -t 4"
+
+# Trimmomatic options
+trim_opts: "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36"
+
+# BWA options
+bwa_opts: "-t 4"
+
+# Samtools options
+samtools_opts: ""
+
+# GATK options
+gatk_opts: ""
+
+# Picard options
+picard_opts: ""
+
+# Freebayes options
+freebayes_opts: "--pooled-continuous"
+
+# Number of threads
+threads: 8
+
+# Minimum mapping quality
+mapq: 30
+
+# Minimum base quality
+baseq: 20
+
+# Minimum coverage
+min_coverage: 10
+
+# Minimum variant frequency
+min_freq: 0.01
+
+# Output directories
+raw_data_dir: raw_data
+aligned_data_dir: aligned_data
+vcf_dir: vcf_files
